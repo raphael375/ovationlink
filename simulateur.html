@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ovation Link — Simulateur Financier</title>
+<script>
+// Protection accès — redirige vers login si non authentifié
+if(sessionStorage.getItem('ol_auth')!=='1'){
+  window.location.replace('index.html');
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#FFFFFF;--bg2:#F5F5F7;--bg3:#EBEBF0;
+  --stroke:#D2D2D7;--t1:#1D1D1F;--t2:#6E6E73;--t3:#AEAEB2;
+  --blue:#0071E3;--blue2:#34AADC;--bluel:#EBF3FD;
+  --green:#34C759;--greenl:#EDFAF1;
+  --orange:#FF9F0A;--orangel:#FFF5E6;
+  --purple:#AF52DE;--purplel:#F5EDFB;
+  --red:#FF3B30;--redl:#FFF0EF;
+  --r:14px;
+  --sh1:0 2px 10px rgba(0,0,0,.05);
+  --sh2:0 8px 28px rgba(0,0,0,.09);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg2);color:var(--t1);-webkit-font-smoothing:antialiased;min-height:100vh;}
+
+/* ── TOP HEADER ── */
+header{
+  background:var(--t1);padding:0 28px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.hdr-logo{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.02em;}
+.hdr-logo span{color:var(--blue2);}
+.hdr-badge{font-size:11px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:100px;padding:3px 10px;margin-left:10px;}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.btn-reset{font-size:12px;font-weight:600;color:rgba(255,255,255,.5);background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:6px 14px;cursor:pointer;transition:all .2s;}
+.btn-reset:hover{color:#fff;border-color:rgba(255,255,255,.4);}
+.hdr-be{font-size:12px;font-weight:600;border-radius:100px;padding:5px 14px;}
+.be-ok{background:rgba(52,199,89,.2);color:#5EDF7A;}
+.be-no{background:rgba(255,59,48,.2);color:#FF6B60;}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:340px 1fr;gap:0;min-height:calc(100vh - 52px);}
+
+/* ── LEFT PANEL (CONTROLS) ── */
+.controls{
+  background:var(--bg);border-right:1px solid var(--stroke);
+  padding:0;overflow-y:auto;position:sticky;top:52px;height:calc(100vh - 52px);
+}
+.ctrl-section{border-bottom:1px solid var(--stroke);}
+.ctrl-head{
+  padding:14px 20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);user-select:none;transition:background .15s;
+  position:sticky;top:0;z-index:10;
+}
+.ctrl-head:hover{background:var(--bg2);}
+.ctrl-head-left{display:flex;align-items:center;gap:10px;}
+.ctrl-head-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.ctrl-head-title{font-size:13px;font-weight:600;letter-spacing:-.01em;}
+.ctrl-head-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+.ctrl-chevron{font-size:14px;color:var(--t3);transition:transform .25s;}
+.ctrl-section.open .ctrl-chevron{transform:rotate(180deg);}
+.ctrl-body{display:none;padding:8px 20px 16px;}
+.ctrl-section.open .ctrl-body{display:block;}
+
+/* SLIDER ROW */
+.slider-row{margin-bottom:16px;}
+.sl-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.sl-label{font-size:12px;font-weight:500;color:var(--t2);}
+.sl-val{font-size:14px;font-weight:700;color:var(--blue);}
+.sl-val.green{color:var(--green);}
+.sl-val.orange{color:var(--orange);}
+.sl-val.purple{color:var(--purple);}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  border-radius:100px;outline:none;cursor:pointer;
+  background:var(--bg3);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--blue);border:2.5px solid #fff;
+  box-shadow:0 1px 4px rgba(0,113,227,.4);cursor:pointer;
+  transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);}
+input[type=range].green::-webkit-slider-thumb{background:var(--green);}
+input[type=range].orange::-webkit-slider-thumb{background:var(--orange);}
+input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
+.sl-hints{display:flex;justify-content:space-between;margin-top:4px;}
+.sl-hint{font-size:10px;color:var(--t3);}
+
+/* NUMBER INPUT */
+.num-row{margin-bottom:14px;}
+.nr-label{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:5px;}
+.nr-input-wrap{display:flex;align-items:center;gap:8px;}
+.nr-input{
+  flex:1;font-size:14px;font-weight:600;color:var(--t1);
+  background:var(--bg2);border:1px solid var(--stroke);
+  border-radius:10px;padding:8px 12px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  font-family:inherit;
+}
+.nr-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.12);}
+.nr-unit{font-size:12px;color:var(--t3);white-space:nowrap;}
+
+/* SEGMENT PRICING */
+.seg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.seg-card{background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--stroke);}
+.seg-card-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
+.seg-inputs{display:flex;flex-direction:column;gap:6px;}
+.seg-input-row{display:flex;align-items:center;justify-content:space-between;}
+.seg-input-lbl{font-size:11px;color:var(--t2);}
+.seg-input{
+  width:72px;font-size:12px;font-weight:600;color:var(--t1);text-align:right;
+  background:var(--bg);border:1px solid var(--stroke);border-radius:7px;
+  padding:4px 8px;outline:none;font-family:inherit;
+  transition:border-color .2s;
+}
+.seg-input:focus{border-color:var(--blue);}
+
+/* ── RIGHT PANEL ── */
+.dashboard{padding:24px;overflow-y:auto;}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--bg);border-radius:var(--r);border:1px solid var(--stroke);padding:18px 16px;box-shadow:var(--sh1);transition:all .3s;}
+.kpi-card.highlight{background:var(--t1);border-color:var(--t1);}
+.kpi-card.green{background:var(--greenl);border-color:rgba(52,199,89,.25);}
+.kpi-card.red{background:var(--redl);border-color:rgba(255,59,48,.2);}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
+.kpi-card.highlight .kpi-label{color:rgba(255,255,255,.4);}
+.kpi-card.green .kpi-label{color:rgba(52,199,89,.6);}
+.kpi-card.red .kpi-label{color:rgba(255,59,48,.5);}
+.kpi-num{font-size:22px;font-weight:700;letter-spacing:-.03em;color:var(--t1);transition:all .3s;}
+.kpi-card.highlight .kpi-num{color:#fff;}
+.kpi-card.green .kpi-num{color:var(--green);}
+.kpi-card.red .kpi-num{color:var(--red);}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:3px;}
+.kpi-card.highlight .kpi-sub{color:rgba(255,255,255,.35);}
+
+/* YEAR TABS */
+.year-tabs{display:flex;gap:4px;margin-bottom:16px;}
+.ytab{font-size:12px;font-weight:600;padding:7px 14px;border-radius:100px;cursor:pointer;border:1px solid var(--stroke);background:var(--bg);color:var(--t2);transition:all .2s;}
+.ytab:hover{background:var(--bg2);}
+.ytab.active{background:var(--t1);color:#fff;border-color:var(--t1);}
+.ytab.be-year{background:var(--greenl);color:var(--green);border-color:rgba(52,199,89,.3);}
+.ytab.be-year.active{background:var(--green);color:#fff;border-color:var(--green);}
+
+/* CHARTS AREA */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.chart-card{background:var(--bg);border-radius:var(--r);border:1px solid var(--stroke);padding:20px;box-shadow:var(--sh1);}
+.chart-card.full{grid-column:1/-1;}
+.cc-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.cc-sub{font-size:11px;color:var(--t3);margin-bottom:16px;}
+
+/* P&L TABLE */
+.pl-card{background:var(--bg);border-radius:var(--r);border:1px solid var(--stroke);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px;}
+.pl-table-wrap{overflow-x:auto;}
+.pl-table{width:100%;border-collapse:collapse;font-size:12px;}
+.pl-table thead tr{background:var(--t1);}
+.pl-table thead th{padding:10px 12px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);white-space:nowrap;}
+.pl-table thead th:first-child{text-align:left;color:rgba(255,255,255,.7);min-width:200px;}
+.pl-table thead th.yr{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);}
+.pl-table thead th.yr-be{background:rgba(52,199,89,.2);color:#5EDF7A;}
+.pl-table tbody tr{border-bottom:1px solid var(--bg3);transition:background .1s;}
+.pl-table tbody tr:hover{background:var(--bg2);}
+.pl-table tbody tr.sec-row td{background:var(--bg2);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);padding:6px 12px;}
+.pl-table tbody tr.tot-row td{font-weight:700;background:rgba(0,113,227,.04);border-top:1.5px solid var(--stroke);}
+.pl-table tbody tr.res-row td{font-weight:700;font-size:13px;}
+.pl-table td{padding:9px 12px;color:var(--t2);}
+.pl-table td:first-child{font-weight:500;color:var(--t1);}
+.pl-table td.n{text-align:right;font-variant-numeric:tabular-nums;color:var(--t1);}
+.pl-table td.n.neg{color:var(--red);}
+.pl-table td.n.pos{color:var(--green);}
+.pl-table td.n.mu{color:var(--t3);}
+.pl-table td.yc{background:rgba(0,113,227,.03);}
+.pl-table td.yc-be{background:rgba(52,199,89,.05);}
+
+/* ANIMATED NUMBER */
+.anim-num{transition:all .4s ease;}
+
+/* WATERMARK CHANGED */
+@keyframes flash{0%{background:rgba(0,113,227,.15)}100%{background:transparent}}
+.changed{animation:flash .5s ease;}
+
+@media(max-width:1100px){
+  .layout{grid-template-columns:1fr;}
+  .controls{position:static;height:auto;}
+  .kpi-row{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:700px){
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .charts-grid{grid-template-columns:1fr;}
+  .chart-card.full{grid-column:1;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <span class="hdr-logo">Ovation <span>Link</span></span>
+    <span class="hdr-badge">Simulateur Financier</span>
+  </div>
+  <div class="hdr-right">
+    <span id="beHeader" class="hdr-be be-no">BE : A?</span>
+    <button class="btn-reset" onclick="resetAll()">↺ Réinitialiser</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ══ LEFT: CONTROLS ══ -->
+  <aside class="controls">
+
+    <!-- TARIFS ABONNEMENTS -->
+    <div class="ctrl-section open">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--bluel);">💶</div>
+          <div><div class="ctrl-head-title">Tarifs abonnements</div><div class="ctrl-head-sub">Prix HT par segment</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="seg-grid">
+          <div class="seg-card">
+            <div class="seg-card-label" style="color:var(--green)">Segment 1</div>
+            <div class="seg-inputs">
+              <div class="seg-input-row"><span class="seg-input-lbl">Abonnement</span><input class="seg-input" id="p_abo1" type="number" value="300" min="50" max="2000" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+              <div class="seg-input-row"><span class="seg-input-lbl">Match</span><input class="seg-input" id="p_m1" type="number" value="20" min="5" max="500" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+            </div>
+          </div>
+          <div class="seg-card">
+            <div class="seg-card-label" style="color:var(--blue)">Segment 2</div>
+            <div class="seg-inputs">
+              <div class="seg-input-row"><span class="seg-input-lbl">Abonnement</span><input class="seg-input" id="p_abo2" type="number" value="900" min="100" max="5000" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+              <div class="seg-input-row"><span class="seg-input-lbl">Match</span><input class="seg-input" id="p_m2" type="number" value="50" min="10" max="500" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+            </div>
+          </div>
+          <div class="seg-card" style="grid-column:1/-1">
+            <div class="seg-card-label" style="color:var(--purple)">Segment 3</div>
+            <div class="seg-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="seg-input-row"><span class="seg-input-lbl">Abonnement</span><input class="seg-input" id="p_abo3" type="number" value="2000" min="500" max="10000" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+              <div class="seg-input-row"><span class="seg-input-lbl">Match</span><input class="seg-input" id="p_m3" type="number" value="120" min="20" max="1000" oninput="recalc()"> <span style="font-size:10px;color:var(--t3)">€</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIX SEGMENTS -->
+    <div class="ctrl-section open">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--purplel);">📊</div>
+          <div><div class="ctrl-head-title">Mix segments</div><div class="ctrl-head-sub">Répartition du stock de pièces</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Segment 1 (micro / jeune public)</span><span class="sl-val green" id="v_s1">60%</span></div>
+          <input type="range" class="green" id="s_s1" min="20" max="80" value="60" oninput="syncMix('s1')">
+          <div class="sl-hints"><span class="sl-hint">20%</span><span class="sl-hint">80%</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Segment 2 (compagnies pro)</span><span class="sl-val" id="v_s2">30%</span></div>
+          <input type="range" id="s_s2" min="10" max="60" value="30" oninput="syncMix('s2')">
+          <div class="sl-hints"><span class="sl-hint">10%</span><span class="sl-hint">60%</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Segment 3 (grandes compagnies)</span><span class="sl-val purple" id="v_s3">10%</span></div>
+          <input type="range" class="purple" id="s_s3" min="0" max="30" value="10" oninput="syncMix('s3')" disabled style="opacity:.5">
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">Auto-calculé (100% − S1 − S2)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACQUISITION A1 -->
+    <div class="ctrl-section open">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--orangel);">📞</div>
+          <div><div class="ctrl-head-title">Acquisition — Année 1</div><div class="ctrl-head-sub">Funnel commercial</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Spectacles ciblés KSO</span><span class="sl-val orange" id="v_targets">7 500</span></div>
+          <input type="range" class="orange" id="s_targets" min="1000" max="15000" step="500" value="7500" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">1 000</span><span class="sl-hint">15 000</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Taux décroché appels</span><span class="sl-val orange" id="v_reach">60%</span></div>
+          <input type="range" class="orange" id="s_reach" min="30" max="90" value="60" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">30%</span><span class="sl-hint">90%</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Taux signature accès gratuit</span><span class="sl-val green" id="v_signup">70%</span></div>
+          <input type="range" class="green" id="s_signup" min="20" max="95" value="70" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">20%</span><span class="sl-hint">95%</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Conversion gratuit → payant</span><span class="sl-val" id="v_conv">50%</span></div>
+          <input type="range" id="s_conv" min="15" max="85" value="50" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">15%</span><span class="sl-hint">85%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MATCHS -->
+    <div class="ctrl-section open">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--teall,#E5F6FE);">🔗</div>
+          <div><div class="ctrl-head-title">Revenus Matchs</div><div class="ctrl-head-sub">Paramètres par pièce active</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Matchs reçus / pièce / an</span><span class="sl-val" id="v_mpa">8</span></div>
+          <input type="range" id="s_mpa" min="2" max="20" value="8" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">2</span><span class="sl-hint">20</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Taux débloquage des matchs</span><span class="sl-val green" id="v_mconv">50%</span></div>
+          <input type="range" class="green" id="s_mconv" min="10" max="90" value="50" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">10%</span><span class="sl-hint">90%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CROISSANCE A2–A5 -->
+    <div class="ctrl-section">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--greenl);">📈</div>
+          <div><div class="ctrl-head-title">Croissance A2 → A5</div><div class="ctrl-head-sub">Nouvelles pièces & renouvellements</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Nouvelles pièces théâtre / an (A2)</span><span class="sl-val green" id="v_new2">600</span></div>
+          <input type="range" class="green" id="s_new2" min="100" max="2000" step="50" value="600" oninput="recalc()">
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Nouvelles pièces / an croissance (A3–A5)</span><span class="sl-val green" id="v_newgr">15%</span></div>
+          <input type="range" class="green" id="s_newgr" min="0" max="50" value="15" oninput="recalc()">
+          <div class="sl-hints"><span class="sl-hint">0%</span><span class="sl-hint">+50%/an</span></div>
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Pièces concert+conf (A2)</span><span class="sl-val" id="v_ext2">200</span></div>
+          <input type="range" id="s_ext2" min="0" max="800" step="50" value="200" oninput="recalc()">
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Taux renouvellement A2</span><span class="sl-val" id="v_ren2">75%</span></div>
+          <input type="range" id="s_ren2" min="40" max="95" value="75" oninput="recalc()">
+        </div>
+        <div class="slider-row">
+          <div class="sl-top"><span class="sl-label">Taux renouvellement A3+</span><span class="sl-val green" id="v_ren3">82%</span></div>
+          <input type="range" class="green" id="s_ren3" min="50" max="97" value="82" oninput="recalc()">
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARGES -->
+    <div class="ctrl-section">
+      <div class="ctrl-head" onclick="toggle(this)">
+        <div class="ctrl-head-left">
+          <div class="ctrl-head-ico" style="background:var(--redl);">💸</div>
+          <div><div class="ctrl-head-title">Charges fixes</div><div class="ctrl-head-sub">Masse salariale & frais</div></div>
+        </div>
+        <span class="ctrl-chevron">⌄</span>
+      </div>
+      <div class="ctrl-body">
+        <div class="num-row"><div class="nr-label">Masse salariale annuelle (fondateurs)</div><div class="nr-input-wrap"><input class="nr-input" id="c_sal" type="number" value="336000" step="12000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Développement plateforme (A0)</div><div class="nr-input-wrap"><input class="nr-input" id="c_dev0" type="number" value="220000" step="10000" oninput="recalc()"><span class="nr-unit">€</span></div></div>
+        <div class="num-row"><div class="nr-label">Développement / maintenance (A1+)</div><div class="nr-input-wrap"><input class="nr-input" id="c_dev1" type="number" value="60000" step="5000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Budget communication (A0)</div><div class="nr-input-wrap"><input class="nr-input" id="c_com0" type="number" value="115000" step="5000" oninput="recalc()"><span class="nr-unit">€</span></div></div>
+        <div class="num-row"><div class="nr-label">Budget communication (A1+)</div><div class="nr-input-wrap"><input class="nr-input" id="c_com1" type="number" value="85000" step="5000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Phoning KSO (A0)</div><div class="nr-input-wrap"><input class="nr-input" id="c_ph0" type="number" value="272000" step="10000" oninput="recalc()"><span class="nr-unit">€</span></div></div>
+        <div class="num-row"><div class="nr-label">Phoning résiduel (A1)</div><div class="nr-input-wrap"><input class="nr-input" id="c_ph1" type="number" value="100000" step="5000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Frais fixes (bureaux, outils, etc.)</div><div class="nr-input-wrap"><input class="nr-input" id="c_fix" type="number" value="30000" step="2000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Superviseur phoning + équipe</div><div class="nr-input-wrap"><input class="nr-input" id="c_sup" type="number" value="60000" step="6000" oninput="recalc()"><span class="nr-unit">€ / an (A0–A2)</span></div></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══ RIGHT: DASHBOARD ══ -->
+  <main class="dashboard">
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="kpi-card highlight">
+        <div class="kpi-label">Levée Seed</div>
+        <div class="kpi-num">500 K€</div>
+        <div class="kpi-sub">Besoin financier</div>
+      </div>
+      <div class="kpi-card" id="kpi_ca1_card">
+        <div class="kpi-label">CA Année 1</div>
+        <div class="kpi-num anim-num" id="kpi_ca1">—</div>
+        <div class="kpi-sub" id="kpi_ca1_sub">—</div>
+      </div>
+      <div class="kpi-card" id="kpi_ca2_card">
+        <div class="kpi-label">CA Année 2</div>
+        <div class="kpi-num anim-num" id="kpi_ca2">—</div>
+        <div class="kpi-sub" id="kpi_ca2_sub">—</div>
+      </div>
+      <div class="kpi-card" id="kpi_ca5_card">
+        <div class="kpi-label">CA Année 5</div>
+        <div class="kpi-num anim-num" id="kpi_ca5">—</div>
+        <div class="kpi-sub" id="kpi_ca5_sub">—</div>
+      </div>
+      <div class="kpi-card" id="kpi_be_card">
+        <div class="kpi-label">Seuil rentabilité</div>
+        <div class="kpi-num anim-num" id="kpi_be">—</div>
+        <div class="kpi-sub" id="kpi_be_sub">—</div>
+      </div>
+    </div>
+
+    <!-- YEAR DETAIL TABS -->
+    <div class="year-tabs" id="yearTabs">
+      <span class="ytab active" data-y="0" onclick="selectYear(this)">Année 0</span>
+      <span class="ytab" data-y="1" onclick="selectYear(this)">Année 1</span>
+      <span class="ytab" data-y="2" onclick="selectYear(this)">Année 2</span>
+      <span class="ytab" data-y="3" onclick="selectYear(this)">Année 3</span>
+      <span class="ytab" data-y="4" onclick="selectYear(this)">Année 4</span>
+      <span class="ytab" data-y="5" onclick="selectYear(this)">Année 5</span>
+    </div>
+
+    <!-- YEAR KPIs -->
+    <div class="kpi-row" id="yearKpis" style="margin-bottom:20px;"></div>
+
+    <!-- CHARTS -->
+    <div class="charts-grid">
+      <div class="chart-card full">
+        <div class="cc-title">CA total vs Charges — 5 ans</div>
+        <div class="cc-sub">Abonnements + Matchs · Seuil de rentabilité auto-détecté</div>
+        <canvas id="mainChart" height="140"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="cc-title">Mix revenus — Abonnements vs Matchs</div>
+        <div class="cc-sub">Décomposition par année</div>
+        <canvas id="mixChart" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="cc-title">Stock de pièces payantes</div>
+        <div class="cc-sub">Nouvelles + renouvellements</div>
+        <canvas id="stockChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- P&L TABLE -->
+    <div class="pl-card">
+      <div class="pl-table-wrap">
+        <table class="pl-table" id="plTable">
+          <thead>
+            <tr id="plHead"></tr>
+          </thead>
+          <tbody id="plBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ═══════════════════ DEFAULTS ═══════════════════ */
+const DEFAULTS = {
+  p_abo1:300,p_abo2:900,p_abo3:2000,
+  p_m1:20,p_m2:50,p_m3:120,
+  s_s1:60,s_s2:30,
+  s_targets:7500,s_reach:60,s_signup:70,s_conv:50,
+  s_mpa:8,s_mconv:50,
+  s_new2:600,s_newgr:15,s_ext2:200,s_ren2:75,s_ren3:82,
+  c_sal:336000,c_dev0:220000,c_dev1:60000,
+  c_com0:115000,c_com1:85000,c_ph0:272000,c_ph1:100000,c_fix:30000,c_sup:60000
+};
+
+/* ═══════════════════ HELPERS ═══════════════════ */
+function v(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function fmt(n,dec=0){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:dec}).format(n);}
+function fmtK(n){if(Math.abs(n)>=1e6)return (n/1e6).toFixed(1)+' M€';if(Math.abs(n)>=1000)return Math.round(n/1000)+' K€';return Math.round(n)+' €';}
+function fmtN(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n));}
+function pct(n){return Math.round(n)+'%';}
+
+let mainChart,mixChart,stockChart,selectedYear=0;
+
+/* ═══════════════════ MIX SYNC ═══════════════════ */
+function syncMix(changed){
+  let s1=v('s_s1'),s2=v('s_s2');
+  if(changed==='s1'){s2=Math.min(s2,100-s1-5);document.getElementById('s_s2').value=s2;}
+  if(changed==='s2'){s1=Math.min(s1,100-s2-5);document.getElementById('s_s1').value=s1;}
+  const s3=Math.max(0,100-s1-s2);
+  document.getElementById('v_s1').textContent=pct(s1);
+  document.getElementById('v_s2').textContent=pct(s2);
+  document.getElementById('v_s3').textContent=pct(s3);
+  recalc();
+}
+
+/* ═══════════════════ CORE CALC ═══════════════════ */
+function calc(){
+  // --- Params ---
+  const abo=[0,v('p_abo1'),v('p_abo2'),v('p_abo3')];
+  const mp=[0,v('p_m1'),v('p_m2'),v('p_m3')];
+  const s1=v('s_s1')/100, s2=v('s_s2')/100, s3=Math.max(0,1-s1-s2);
+  const smix=[0,s1,s2,s3];
+  const targets=v('s_targets'), reach=v('s_reach')/100, signup=v('s_signup')/100, conv=v('s_conv')/100;
+  const mpa=v('s_mpa'), mconv=v('s_mconv')/100;
+  const new2=v('s_new2'), newgr=v('s_newgr')/100, ext2=v('s_ext2');
+  const ren2=v('s_ren2')/100, ren3=v('s_ren3')/100;
+  const c_sal=v('c_sal'),c_dev0=v('c_dev0'),c_dev1=v('c_dev1');
+  const c_com0=v('c_com0'),c_com1=v('c_com1'),c_ph0=v('c_ph0'),c_ph1=v('c_ph1'),c_fix=v('c_fix'),c_sup=v('c_sup');
+
+  // --- A1 stock ---
+  const a1_new = Math.round(targets * reach * signup * conv);
+
+  // --- Compute stock per year ---
+  // yr = [0..5]
+  const stocks=[0,a1_new,0,0,0,0];
+  const newPieces=[0,a1_new,new2+ext2,0,0,0];
+  const extPieces=[0,0,ext2,0,0,0];
+  const renewals=[0,0,0,0,0,0];
+
+  for(let y=2;y<=5;y++){
+    const ren=y===2?ren2:ren3;
+    const prev_stock=stocks[y-1];
+    const renew=Math.round(prev_stock*ren);
+    renewals[y]=renew;
+    let np;
+    if(y===2)np=new2+ext2;
+    else np=Math.round(newPieces[y-1]*(1+newgr));
+    newPieces[y]=np;
+    stocks[y]=renew+np;
+  }
+
+  // --- Revenue per year ---
+  const ca_abo=[],ca_match=[],ca_total=[];
+  for(let y=0;y<=5;y++){
+    if(y===0){ca_abo.push(0);ca_match.push(0);ca_total.push(0);continue;}
+    const st=stocks[y];
+    let abo_rev=0,match_rev=0;
+    for(let s=1;s<=3;s++){
+      const pieces=st*smix[s];
+      abo_rev+=pieces*abo[s];
+      match_rev+=pieces*mpa*mconv*mp[s];
+    }
+    ca_abo.push(Math.round(abo_rev));
+    ca_match.push(Math.round(match_rev));
+    ca_total.push(Math.round(abo_rev+match_rev));
+  }
+
+  // --- Charges per year ---
+  const charges=[];
+  const acq_decay=[0,c_ph1*0.8,c_ph1*0.6,c_ph1*0.45,c_ph1*0.3,c_ph1*0.2];
+  const com_decay=[0,c_com1,c_com1*0.8,c_com1*0.65,c_com1*0.55,c_com1*0.5];
+  const dev_yr=[c_dev0,c_dev1,c_dev1*0.85,c_dev1*0.7,c_dev1*0.7,c_dev1*0.7];
+  const sal_yr=[c_sal,c_sal,c_sal,c_sal*1.1,c_sal*1.1,c_sal*1.19];
+  const sup_yr=[c_sup,c_sup,c_sup,0,0,0];
+  const hire_yr=[0,0,42000,84000+48000,84000+48000+114000,84000+48000+114000];
+  const fix_yr=[c_fix,c_fix*1.2,c_fix*1.5,c_fix*1.7,c_fix*1.7,c_fix*1.7];
+  const files_yr=[70000,30000,25000,20000,15000,15000];
+  const phoning_yr=[c_ph0,c_ph1,...acq_decay.slice(2)];
+
+  for(let y=0;y<=5;y++){
+    const total=dev_yr[y]+sal_yr[y]+sup_yr[y]+hire_yr[y]+fix_yr[y]+files_yr[y]+com_decay[y]+(y===0?c_ph0:acq_decay[y]);
+    charges.push(Math.round(total));
+  }
+
+  const results=ca_total.map((c,i)=>c-charges[i]);
+
+  // --- BE year ---
+  let beYear=-1;
+  for(let y=1;y<=5;y++){if(results[y]>=0){beYear=y;break;}}
+
+  return {stocks,newPieces,renewals,ca_abo,ca_match,ca_total,charges,results,beYear,smix,abo,mp,mpa,mconv};
+}
+
+/* ═══════════════════ RENDER ═══════════════════ */
+function recalc(){
+  // Update all slider labels
+  ['s_targets','s_reach','s_signup','s_conv','s_mpa','s_mconv','s_new2','s_newgr','s_ext2','s_ren2','s_ren3'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const vl=document.getElementById('v_'+id.replace('s_',''));
+    if(!vl)return;
+    const val=el.value;
+    const pctIds=['s_reach','s_signup','s_conv','s_mconv','s_newgr','s_ren2','s_ren3'];
+    vl.textContent=pctIds.includes(id)?pct(val):fmtN(val);
+  });
+
+  const D=calc();
+
+  // ── KPIs ──
+  const beLabel=D.beYear>0?'Année '+D.beYear:'> A5';
+  setKpi('kpi_ca1',fmtK(D.ca_total[1]),'Stock: '+fmtN(D.stocks[1])+' pièces',D.results[1]>=0?'green':D.ca_total[1]>200000?'':'red');
+  setKpi('kpi_ca2',fmtK(D.ca_total[2]),'Matchs: '+pct(Math.round(D.ca_match[2]/D.ca_total[2]*100||0)),D.results[2]>=0?'green':'');
+  setKpi('kpi_ca5',fmtK(D.ca_total[5]),'Marge: '+pct(Math.round((D.results[5]/D.ca_total[5])*100||0)),D.results[5]>0?'green':'');
+  setKpi('kpi_be',beLabel,D.beYear>0?'Résultat: '+fmtK(D.results[D.beYear]):'Déficit A5: '+fmtK(D.results[5]),D.beYear>0?'green':'red');
+
+  // Header BE
+  const hbe=document.getElementById('beHeader');
+  hbe.textContent=D.beYear>0?'BE : A'+D.beYear:'BE : > A5';
+  hbe.className='hdr-be '+(D.beYear>0?'be-ok':'be-no');
+
+  // ── Year tabs: mark BE year ──
+  document.querySelectorAll('.ytab').forEach(t=>{
+    const y=parseInt(t.dataset.y);
+    t.classList.remove('be-year');
+    if(y===D.beYear)t.classList.add('be-year');
+  });
+
+  // ── Year detail KPIs ──
+  renderYearKpis(D,selectedYear);
+
+  // ── Charts ──
+  renderCharts(D);
+
+  // ── P&L Table ──
+  renderPL(D);
+}
+
+function setKpi(id,val,sub,cls){
+  const card=document.getElementById(id+'_card');
+  const num=document.getElementById(id);
+  const subEl=document.getElementById(id+'_sub');
+  if(card){card.className='kpi-card '+(cls||'');}
+  if(num)num.textContent=val;
+  if(subEl)subEl.textContent=sub||'';
+}
+
+function renderYearKpis(D,y){
+  const container=document.getElementById('yearKpis');
+  const items=[
+    {label:'CA total',val:fmtK(D.ca_total[y]),sub:'dont matchs '+fmtK(D.ca_match[y]),cls:D.ca_total[y]>0?'':''},
+    {label:'Abonnements',val:fmtK(D.ca_abo[y]),sub:'',cls:''},
+    {label:'Matchs',val:fmtK(D.ca_match[y]),sub:D.ca_total[y]>0?pct(Math.round(D.ca_match[y]/D.ca_total[y]*100))+'% du CA':'—',cls:''},
+    {label:'Charges',val:fmtK(D.charges[y]),sub:'',cls:''},
+    {label:'Résultat net',val:fmtK(D.results[y]),sub:D.ca_total[y]>0?'Marge: '+pct(Math.round(D.results[y]/D.ca_total[y]*100))+'%':'—',cls:D.results[y]>=0?'green':'red'},
+  ];
+  container.innerHTML=items.map(it=>`
+    <div class="kpi-card ${it.cls}">
+      <div class="kpi-label">A${y} · ${it.label}</div>
+      <div class="kpi-num">${it.val}</div>
+      <div class="kpi-sub">${it.sub}</div>
+    </div>
+  `).join('');
+}
+
+function selectYear(el){
+  document.querySelectorAll('.ytab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  selectedYear=parseInt(el.dataset.y);
+  const D=calc();
+  renderYearKpis(D,selectedYear);
+}
+
+/* ═══════════════════ CHARTS ═══════════════════ */
+function renderCharts(D){
+  const labels=['A0','A1','A2','A3','A4','A5'];
+
+  // Main chart
+  if(mainChart)mainChart.destroy();
+  const ctx1=document.getElementById('mainChart').getContext('2d');
+  const gCA=ctx1.createLinearGradient(0,0,0,250);gCA.addColorStop(0,'rgba(0,113,227,.15)');gCA.addColorStop(1,'rgba(0,113,227,0)');
+  const gCh=ctx1.createLinearGradient(0,0,0,250);gCh.addColorStop(0,'rgba(255,59,48,.1)');gCh.addColorStop(1,'rgba(255,59,48,0)');
+  mainChart=new Chart(ctx1,{type:'line',data:{labels,datasets:[
+    {label:'CA total',data:D.ca_total,borderColor:'#0071E3',borderWidth:2.5,pointBackgroundColor:'#0071E3',pointRadius:4,fill:true,backgroundColor:gCA,tension:.4},
+    {label:'Charges',data:D.charges,borderColor:'#FF3B30',borderWidth:2,pointBackgroundColor:'#FF3B30',pointRadius:3,fill:true,backgroundColor:gCh,tension:.4}
+  ]},options:{animation:{duration:300},plugins:{legend:{labels:{color:'#6E6E73',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'rgba(255,255,255,.97)',titleColor:'#0071E3',bodyColor:'#1D1D1F',borderColor:'#D2D2D7',borderWidth:1,padding:10,cornerRadius:8,callbacks:{label:c=>c.dataset.label+' : '+fmtK(c.parsed.y)}}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#AEAEB2',font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#AEAEB2',font:{size:10},callback:v=>fmtK(v)}}}}});
+
+  // Mix chart
+  if(mixChart)mixChart.destroy();
+  const ctx2=document.getElementById('mixChart').getContext('2d');
+  mixChart=new Chart(ctx2,{type:'bar',data:{labels:['A1','A2','A3','A4','A5'],datasets:[
+    {label:'Abonnements',data:D.ca_abo.slice(1),backgroundColor:'rgba(0,113,227,.7)',borderRadius:5,borderWidth:0},
+    {label:'Matchs',data:D.ca_match.slice(1),backgroundColor:'rgba(52,199,89,.7)',borderRadius:5,borderWidth:0}
+  ]},options:{animation:{duration:300},plugins:{legend:{labels:{color:'#6E6E73',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'rgba(255,255,255,.97)',titleColor:'#1D1D1F',bodyColor:'#6E6E73',borderColor:'#D2D2D7',borderWidth:1,callbacks:{label:c=>c.dataset.label+' : '+fmtK(c.raw)}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#AEAEB2',font:{size:10}}},y:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#AEAEB2',font:{size:10},callback:v=>fmtK(v)}}}}});
+
+  // Stock chart
+  if(stockChart)stockChart.destroy();
+  const ctx3=document.getElementById('stockChart').getContext('2d');
+  stockChart=new Chart(ctx3,{type:'bar',data:{labels:['A1','A2','A3','A4','A5'],datasets:[
+    {label:'Renouvellements',data:D.renewals.slice(1),backgroundColor:'rgba(0,113,227,.4)',borderRadius:0,borderWidth:0},
+    {label:'Nouvelles pièces',data:D.newPieces.slice(1),backgroundColor:'rgba(0,113,227,.8)',borderRadius:[5,5,0,0],borderWidth:0}
+  ]},options:{animation:{duration:300},plugins:{legend:{labels:{color:'#6E6E73',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'rgba(255,255,255,.97)',titleColor:'#1D1D1F',bodyColor:'#6E6E73',borderColor:'#D2D2D7',borderWidth:1}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#AEAEB2',font:{size:10}}},y:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#AEAEB2',font:{size:10}}}}}});
+}
+
+/* ═══════════════════ P&L TABLE ═══════════════════ */
+function renderPL(D){
+  const head=document.getElementById('plHead');
+  const body=document.getElementById('plBody');
+  const cols=['Poste','A0','A1','A2','A3','A4','A5'];
+
+  head.innerHTML=cols.map((c,i)=>{
+    if(i===0)return`<th>${c}</th>`;
+    const y=i-1;
+    const isBe=y===D.beYear;
+    return`<th class="${isBe?'yr-be':'yr'}">${c}${isBe?' ✓':''}</th>`;
+  }).join('');
+
+  const isBeCol=(y)=>y===D.beYear;
+  const nc=(val,y,cls='')=>`<td class="n ${cls} ${isBeCol(y)?'yc-be':'yc'}">${val}</td>`;
+
+  const rows=[];
+
+  rows.push({type:'sec',label:'STOCK & REVENUS'});
+  rows.push({label:'Pièces payantes (stock fin année)',vals:D.stocks.map((s,i)=>i===0?'—':fmtN(s))});
+  rows.push({label:'Revenus abonnements',vals:D.ca_abo.map((v,i)=>i===0?'—':fmtK(v)),pos:true});
+  rows.push({label:'Revenus Matchs',vals:D.ca_match.map((v,i)=>i===0?'—':fmtK(v)),pos:true});
+  rows.push({type:'tot',label:'CA TOTAL',vals:D.ca_total.map((v,i)=>i===0?'0 €':fmtK(v)),pos:true});
+
+  rows.push({type:'sec',label:'CHARGES'});
+  rows.push({label:'Développement plateforme',vals:[fmtK(v('c_dev0')),...[1,2,3,4,5].map(y=>fmtK(y===1?v('c_dev1'):y<=3?v('c_dev1')*0.85:v('c_dev1')*0.7))]});
+  rows.push({label:'Masse salariale fondateurs',vals:[fmtK(v('c_sal')),...[1,2,3,4,5].map(y=>fmtK(y<=2?v('c_sal'):y<=4?v('c_sal')*1.1:v('c_sal')*1.19))]});
+  rows.push({label:'Équipe additionnelle',vals:['—','—',fmtK(42000),fmtK(132000),fmtK(246000),fmtK(246000)]});
+  rows.push({label:'Communication digitale',vals:[fmtK(v('c_com0')),fmtK(v('c_com1')),...[2,3,4,5].map(y=>fmtK(v('c_com1')*(y===2?.8:y===3?.65:y===4?.55:.5)))]});
+  rows.push({label:'Phoning (KSO + CGU)',vals:[fmtK(v('c_ph0')),fmtK(v('c_ph1')),...[2,3,4,5].map(y=>fmtK(v('c_ph1')*(y===2?.6:y===3?.45:y===4?.3:.2)))]});
+  rows.push({label:'Fichiers & acquisition',vals:['70 K€','30 K€','25 K€','20 K€','15 K€','15 K€']});
+  rows.push({label:'Frais fixes & divers',vals:[0,1,2,3,4,5].map(y=>fmtK(v('c_fix')*(y===0?1:y===1?1.2:y===2?1.5:1.7)))});
+  rows.push({type:'tot',label:'TOTAL CHARGES',vals:D.charges.map(c=>fmtK(c)),neg:true});
+
+  rows.push({type:'sec',label:'RÉSULTAT'});
+  rows.push({type:'res',label:'RÉSULTAT NET',vals:D.results.map((r,i)=>({v:r,s:i}))});
+  rows.push({label:'MARGE NETTE',vals:D.results.map((r,i)=>i===0?'—':D.ca_total[i]>0?pct(Math.round(r/D.ca_total[i]*100))+'%':'—')});
+
+  body.innerHTML=rows.map(row=>{
+    if(row.type==='sec')return`<tr class="sec-row"><td colspan="7">${row.label}</td></tr>`;
+    if(row.type==='res'){
+      const cells=row.vals.map((item,i)=>{
+        const cls=i===0?'neg':item.v>=0?'pos':'neg';
+        return nc(fmtK(item.v),i,cls);
+      }).join('');
+      return`<tr class="res-row"><td>${row.label}</td>${cells}</tr>`;
+    }
+    const baseCls=row.pos?'pos':row.neg?'neg':'';
+    const cells=row.vals.map((val,i)=>nc(val,i,baseCls)).join('');
+    const rowCls=row.type==='tot'?'tot-row':'';
+    return`<tr class="${rowCls}"><td>${row.label}</td>${cells}</tr>`;
+  }).join('');
+}
+
+/* ═══════════════════ ACCORDION ═══════════════════ */
+function toggle(head){
+  const section=head.closest('.ctrl-section');
+  section.classList.toggle('open');
+}
+
+/* ═══════════════════ RESET ═══════════════════ */
+function resetAll(){
+  Object.entries(DEFAULTS).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(el)el.value=val;
+  });
+  syncMix('s1');
+  recalc();
+}
+
+/* ═══════════════════ INIT ═══════════════════ */
+recalc();
+</script>
+</body>
+</html>

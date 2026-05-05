@@ -267,8 +267,8 @@ input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
       </div>
       <div class="ctrl-body">
         <div class="slider-row">
-          <div class="sl-top"><span class="sl-label">Segment 1 (micro / jeune public)</span><span class="sl-val green" id="v_s1">60%</span></div>
-          <input type="range" class="green" id="s_s1" min="20" max="80" value="60" oninput="syncMix('s1')">
+          <div class="sl-top"><span class="sl-label">Segment 1 (micro / jeune public)</span><span class="sl-val green" id="v_s1">50%</span></div>
+          <input type="range" class="green" id="s_s1" min="20" max="80" value="50" oninput="syncMix('s1')">
           <div class="sl-hints"><span class="sl-hint">20%</span><span class="sl-hint">80%</span></div>
         </div>
         <div class="slider-row">
@@ -277,7 +277,7 @@ input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
           <div class="sl-hints"><span class="sl-hint">10%</span><span class="sl-hint">60%</span></div>
         </div>
         <div class="slider-row">
-          <div class="sl-top"><span class="sl-label">Segment 3 (grandes compagnies)</span><span class="sl-val purple" id="v_s3">10%</span></div>
+          <div class="sl-top"><span class="sl-label">Segment 3 (grandes compagnies)</span><span class="sl-val purple" id="v_s3">20%</span></div>
           <input type="range" class="purple" id="s_s3" min="0" max="30" value="10" oninput="syncMix('s3')" disabled style="opacity:.5">
           <div style="font-size:10px;color:var(--t3);margin-top:3px;">Auto-calculé (100% − S1 − S2)</div>
         </div>
@@ -300,17 +300,17 @@ input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
           <div class="sl-hints"><span class="sl-hint">1 000</span><span class="sl-hint">15 000</span></div>
         </div>
         <div class="slider-row">
-          <div class="sl-top"><span class="sl-label">Taux décroché appels</span><span class="sl-val orange" id="v_reach">75%</span></div>
-          <input type="range" class="orange" id="s_reach" min="30" max="90" value="75" oninput="recalc()">
+          <div class="sl-top"><span class="sl-label">Taux d'accès au contact</span><span class="sl-val orange" id="v_reach">100%</span></div>
+          <input type="range" class="orange" id="s_reach" min="30" max="100" value="100" oninput="recalc()">
           <div class="sl-hints"><span class="sl-hint">30%</span><span class="sl-hint">90%</span></div>
         </div>
         <div class="slider-row">
-          <div class="sl-top"><span class="sl-label">Taux signature accès gratuit</span><span class="sl-val green" id="v_signup">75%</span></div>
-          <input type="range" class="green" id="s_signup" min="20" max="95" value="75" oninput="recalc()">
+          <div class="sl-top"><span class="sl-label">Taux d'éligibilité (qualité liste)</span><span class="sl-val green" id="v_signup">100%</span></div>
+          <input type="range" class="green" id="s_signup" min="20" max="100" value="100" oninput="recalc()">
           <div class="sl-hints"><span class="sl-hint">20%</span><span class="sl-hint">95%</span></div>
         </div>
         <div class="slider-row">
-          <div class="sl-top"><span class="sl-label">Conversion gratuit → payant</span><span class="sl-val" id="v_conv">20%</span></div>
+          <div class="sl-top"><span class="sl-label">Taux de transformation contrat (Excel : 20%)</span><span class="sl-val" id="v_conv">20%</span></div>
           <input type="range" id="s_conv" min="15" max="85" value="20" oninput="recalc()">
           <div class="sl-hints"><span class="sl-hint">15%</span><span class="sl-hint">85%</span></div>
         </div>
@@ -384,7 +384,7 @@ input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
         <span class="ctrl-chevron">⌄</span>
       </div>
       <div class="ctrl-body">
-        <div class="num-row"><div class="nr-label">Masse salariale annuelle (fondateurs)</div><div class="nr-input-wrap"><input class="nr-input" id="c_sal" type="number" value="336000" step="12000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
+        <div class="num-row"><div class="nr-label">Masse salariale annuelle (fondateurs)</div><div class="nr-input-wrap"><input class="nr-input" id="c_sal" type="number" value="396000" step="12000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
         <div class="num-row"><div class="nr-label">Développement plateforme (A0)</div><div class="nr-input-wrap"><input class="nr-input" id="c_dev0" type="number" value="150000" step="10000" oninput="recalc()"><span class="nr-unit">€</span></div></div>
         <div class="num-row"><div class="nr-label">Développement / maintenance (A1+)</div><div class="nr-input-wrap"><input class="nr-input" id="c_dev1" type="number" value="60000" step="5000" oninput="recalc()"><span class="nr-unit">€ / an</span></div></div>
         <div class="num-row"><div class="nr-label">Communication web salles + producteurs (A0)</div><div class="nr-input-wrap"><input class="nr-input" id="c_com0" type="number" value="60000" step="5000" oninput="recalc()"><span class="nr-unit">€</span></div></div>
@@ -482,11 +482,11 @@ input[type=range].purple::-webkit-slider-thumb{background:var(--purple);}
 const DEFAULTS = {
   p_abo1:300,p_abo2:900,p_abo3:2000,
   p_m1:20,p_m2:50,p_m3:120,
-  s_s1:60,s_s2:30,
-  s_targets:8000,s_reach:75,s_signup:75,s_conv:20,
+  s_s1:50,s_s2:30,
+  s_targets:8000,s_reach:100,s_signup:100,s_conv:20,
   s_mpa:10,s_mconv:50,
   s_new2:800,s_newgr:15,s_ext2:200,s_ren2:75,s_ren3:82,
-  c_sal:336000,c_dev0:150000,c_dev1:60000,
+  c_sal:396000,c_dev0:150000,c_dev1:60000,
   c_com0:60000,c_com1:60000,c_ph0:384000,c_ph1:143000,c_fix:55200,c_sup:60000
 };
 
